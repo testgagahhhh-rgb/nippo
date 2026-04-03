@@ -92,6 +92,8 @@ CREATE UNIQUE INDEX "daily_reports_user_id_report_date_key" ON "daily_reports"("
 
 -- AddForeignKey
 ALTER TABLE "users" ADD CONSTRAINT "users_department_id_fkey" FOREIGN KEY ("department_id") REFERENCES "departments"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- Note: ON DELETE SET NULL allows admin users to exist without a department,
+-- and preserves users when a department is deleted.
 
 -- AddForeignKey
 ALTER TABLE "daily_reports" ADD CONSTRAINT "daily_reports_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

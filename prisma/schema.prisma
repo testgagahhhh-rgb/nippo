@@ -51,7 +51,7 @@ model User {
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
-  department   Department?   @relation(fields: [departmentId], references: [id])
+  department   Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   dailyReports DailyReport[]
   comments     Comment[]
 
