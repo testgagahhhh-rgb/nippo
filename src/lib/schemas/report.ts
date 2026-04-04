@@ -27,18 +27,26 @@ export const createReportSchema = z.object({
       const date = new Date(val);
       return !isNaN(date.getTime()) && val === date.toISOString().slice(0, 10);
     }, "report_date が不正な日付です"),
-  visit_records: z
-    .array(visitRecordSchema)
-    .min(1, "visit_records は1件以上必要です"),
-  problem: z
-    .string()
-    .max(2000, "problem は2000文字以内で入力してください")
-    .optional(),
-  plan: z
-    .string()
-    .max(2000, "plan は2000文字以内で入力してください")
-    .optional(),
+  visit_records: z.array(visitRecordSchema).min(1, "visit_records は1件以上必要です"),
+  problem: z.string().max(2000, "problem は2000文字以内で入力してください").optional(),
+  plan: z.string().max(2000, "plan は2000文字以内で入力してください").optional(),
 });
 
 export type CreateReportInput = z.infer<typeof createReportSchema>;
 export type VisitRecordInput = z.infer<typeof visitRecordSchema>;
+
+// PUT /api/reports/:id — 訪問記録は全件上書き
+export const updateReportSchema = z.object({
+  report_date: z
+    .string("report_date は必須です")
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "report_date は YYYY-MM-DD 形式で指定してください")
+    .refine((val) => {
+      const date = new Date(val);
+      return !isNaN(date.getTime()) && val === date.toISOString().slice(0, 10);
+    }, "report_date が不正な日付です"),
+  visit_records: z.array(visitRecordSchema).min(1, "visit_records は1件以上必要です"),
+  problem: z.string().max(2000, "problem は2000文字以内で入力してください").optional(),
+  plan: z.string().max(2000, "plan は2000文字以内で入力してください").optional(),
+});
+
+export type UpdateReportInput = z.infer<typeof updateReportSchema>;
