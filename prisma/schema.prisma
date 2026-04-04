@@ -10,32 +10,65 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 営業マスタ
-model SalesPerson {
-  salesPersonId Int      @id @default(autoincrement()) @map("sales_person_id")
-  name          String   @db.VarChar(100)
-  email         String   @unique @db.VarChar(255)
-  department    String   @db.VarChar(100)
-  isManager     Boolean  @default(false) @map("is_manager")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+// ロール定義
+enum Role {
+  sales
+  manager
+  admin
+}
 
-  dailyReports     DailyReport[]
-  managerComments  ManagerComment[]
+// 日報ステータス
+enum ReportStatus {
+  draft
+  submitted
+}
 
-  @@map("sales_persons")
+// コメント対象セクション
+enum CommentTargetType {
+  problem
+  plan
+}
+
+// 部署マスタ
+model Department {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("departments")
+}
+
+// ユーザーマスタ
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar(100)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  role         Role
+  departmentId Int?     @map("department_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  department   Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  dailyReports DailyReport[]
+  comments     Comment[]
+
+  @@map("users")
 }
 
 // 顧客マスタ
 model Customer {
-  customerId    Int      @id @default(autoincrement()) @map("customer_id")
-  companyName   String   @db.VarChar(200) @map("company_name")
-  contactPerson String?  @db.VarChar(100) @map("contact_person")
-  phone         String?  @db.VarChar(20)
-  email         String?  @db.VarChar(255)
-  address       String?  @db.VarChar(500)
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  companyName String   @map("company_name") @db.VarChar(200)
+  phone       String?  @db.VarChar(20)
+  email       String?  @db.VarChar(255)
+  address     String?  @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   visitRecords VisitRecord[]
 
@@ -44,47 +77,50 @@ model Customer {
 
 // 日報
 model DailyReport {
-  reportId      Int      @id @default(autoincrement()) @map("report_id")
-  salesPersonId Int      @map("sales_person_id")
-  reportDate    DateTime @db.Date @map("report_date")
-  problem       String?  @db.Text
-  plan          String?  @db.Text
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id          Int          @id @default(autoincrement())
+  userId      Int          @map("user_id")
+  reportDate  DateTime     @db.Date @map("report_date")
+  status      ReportStatus @default(draft)
+  submittedAt DateTime?    @map("submitted_at")
+  problem     String?      @db.Text
+  plan        String?      @db.Text
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
 
-  salesPerson     SalesPerson      @relation(fields: [salesPersonId], references: [salesPersonId])
-  visitRecords    VisitRecord[]
-  managerComments ManagerComment[]
+  user         User          @relation(fields: [userId], references: [id])
+  visitRecords VisitRecord[]
+  comments     Comment[]
 
-  @@unique([salesPersonId, reportDate])
+  @@unique([userId, reportDate])
   @@map("daily_reports")
 }
 
 // 訪問記録
 model VisitRecord {
-  visitId      Int      @id @default(autoincrement()) @map("visit_id")
-  reportId     Int      @map("report_id")
-  customerId   Int      @map("customer_id")
-  visitContent String   @db.Text @map("visit_content")
-  visitTime    String?  @db.VarChar(5) @map("visit_time") // HH:MM
-  createdAt    DateTime @default(now()) @map("created_at")
+  id         Int      @id @default(autoincrement())
+  reportId   Int      @map("report_id")
+  customerId Int      @map("customer_id")
+  content    String   @db.Text
+  visitedAt  String?  @db.VarChar(5) @map("visited_at") // HH:MM
+  createdAt  DateTime @default(now()) @map("created_at")
 
-  dailyReport DailyReport @relation(fields: [reportId], references: [reportId], onDelete: Cascade)
-  customer    Customer    @relation(fields: [customerId], references: [customerId])
+  dailyReport DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  customer    Customer    @relation(fields: [customerId], references: [id])
 
   @@map("visit_records")
 }
 
-// 上長コメント
-model ManagerComment {
-  commentId   Int      @id @default(autoincrement()) @map("comment_id")
-  reportId    Int      @map("report_id")
-  managerId   Int      @map("manager_id")
-  comment     String   @db.Text
-  createdAt   DateTime @default(now()) @map("created_at")
+// コメント（problem / plan セクションへの上長コメント）
+model Comment {
+  id         Int               @id @default(autoincrement())
+  reportId   Int               @map("report_id")
+  userId     Int               @map("user_id")
+  targetType CommentTargetType @map("target_type")
+  content    String            @db.Text
+  createdAt  DateTime          @default(now()) @map("created_at")
 
-  dailyReport DailyReport @relation(fields: [reportId], references: [reportId], onDelete: Cascade)
-  manager     SalesPerson @relation(fields: [managerId], references: [salesPersonId])
+  dailyReport DailyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id])
 
-  @@map("manager_comments")
+  @@map("comments")
 }
