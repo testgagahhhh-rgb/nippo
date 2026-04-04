@@ -31,3 +31,9 @@ export type PaginationMeta = {
   page: number;
   per_page: number;
 };
+
+export type VisitRecord = {
+  customer_id: number | null;
+  content: string;
+  visited_at: string | null;
+};
