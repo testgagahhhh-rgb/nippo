@@ -1,4 +1,4 @@
-import type { Customer, PaginationMeta } from "@/src/types";
+import type { Customer, Department, PaginationMeta, User } from "@/src/types";
 
 const customers: Customer[] = [
   {
@@ -123,4 +123,60 @@ export function getCustomers(params?: { q?: string; page?: number }): {
 
 export function getCustomerById(id: string): Customer | undefined {
   return customers.find((c) => c.id === Number(id));
+}
+
+const departments: Department[] = [
+  { id: 1, name: "東京営業部" },
+  { id: 2, name: "大阪営業部" },
+  { id: 3, name: "名古屋営業部" },
+];
+
+const users: User[] = [
+  {
+    id: 1,
+    name: "佐藤 管理太郎",
+    email: "sato@example.com",
+    role: "admin",
+    department: { id: 1, name: "東京営業部" },
+  },
+  {
+    id: 2,
+    name: "田中 一郎",
+    email: "tanaka@example.com",
+    role: "sales",
+    department: { id: 1, name: "東京営業部" },
+  },
+  {
+    id: 3,
+    name: "鈴木 花子",
+    email: "suzuki@example.com",
+    role: "manager",
+    department: { id: 2, name: "大阪営業部" },
+  },
+  {
+    id: 4,
+    name: "高橋 次郎",
+    email: "takahashi@example.com",
+    role: "sales",
+    department: { id: 2, name: "大阪営業部" },
+  },
+  {
+    id: 5,
+    name: "山田 三郎",
+    email: "yamada@example.com",
+    role: "sales",
+    department: { id: 3, name: "名古屋営業部" },
+  },
+];
+
+export function getUsers(): User[] {
+  return users;
+}
+
+export function getUserById(id: string): User | undefined {
+  return users.find((u) => u.id === Number(id));
+}
+
+export function getDepartments(): Department[] {
+  return departments;
 }

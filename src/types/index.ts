@@ -26,6 +26,19 @@ export type CustomerFormData = {
   address: string;
 };
 
+export type Department = {
+  id: number;
+  name: string;
+};
+
+export type UserFormData = {
+  name: string;
+  email: string;
+  password: string;
+  role: Role;
+  department_id: number;
+};
+
 export type PaginationMeta = {
   total: number;
   page: number;
