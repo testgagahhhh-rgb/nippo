@@ -12,6 +12,7 @@
     "tsc": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:integration": "vitest run src/test/integration",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "cd .. && git config core.hooksPath nippo/.husky"
