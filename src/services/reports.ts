@@ -1,5 +1,6 @@
 import { getDb, nextId } from "@/src/lib/db";
 import type { DbDailyReport, DbVisitRecord } from "@/src/lib/db";
+import { sanitizeInput } from "@/src/lib/sanitize";
 
 export type CreateReportInput = {
   report_date: string;
@@ -86,7 +87,7 @@ export function createReport(
       id: nextId("visit_records"),
       report_id: reportId,
       customer_id: vr.customer_id,
-      content: vr.content,
+      content: sanitizeInput(vr.content),
       visited_at: vr.visited_at ?? null,
     };
     db.visit_records.push(record);
@@ -188,7 +189,7 @@ export function updateReport(
         db.visit_records[existingIndex] = {
           ...db.visit_records[existingIndex],
           customer_id: vr.customer_id,
-          content: vr.content,
+          content: sanitizeInput(vr.content),
           visited_at: vr.visited_at ?? null,
         };
         newVisitRecords.push(db.visit_records[existingIndex]);
@@ -199,7 +200,7 @@ export function updateReport(
         id: nextId("visit_records"),
         report_id: reportId,
         customer_id: vr.customer_id,
-        content: vr.content,
+        content: sanitizeInput(vr.content),
         visited_at: vr.visited_at ?? null,
       };
       db.visit_records.push(record);
