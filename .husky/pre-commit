@@ -1,2 +1,2 @@
-cd nippo
+cd nippo 2>/dev/null || true
 npx lint-staged
