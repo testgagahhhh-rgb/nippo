@@ -5,15 +5,28 @@ import { isBlacklisted } from "@/src/lib/auth/token-blacklist";
 /**
  * Next.js ミドルウェア。
  *
- * `/api/auth/login` 以外の全 `/api/**` ルートに適用し、
- * Bearer トークンを検証する。
- *
- * - トークン未指定 → 401 UNAUTHORIZED
- * - ブラックリスト済み → 401 UNAUTHORIZED
- * - 不正・期限切れトークン → 401 UNAUTHORIZED
- * - 有効なトークン → リクエストをそのまま通す
+ * - `/api/auth/login` は認証不要
+ * - `/api/**` ルートは Bearer トークンを検証
+ * - `/(app)/**` ページは cookie の auth-token をチェックし、
+ *   無ければ `/login` にリダイレクト
  */
 export async function middleware(req: NextRequest): Promise<NextResponse> {
+  const { pathname } = req.nextUrl;
+
+  // --- API ルート ---
+  if (pathname.startsWith("/api/")) {
+    return handleApiAuth(req);
+  }
+
+  // --- アプリページルート ---
+  return handlePageAuth(req);
+}
+
+/**
+ * API ルートの認証処理。
+ * Authorization ヘッダーの Bearer トークンを検証する。
+ */
+async function handleApiAuth(req: NextRequest): Promise<NextResponse> {
   const authorization = req.headers.get("authorization");
 
   if (!authorization || !authorization.startsWith("Bearer ")) {
@@ -71,13 +84,45 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
   return NextResponse.next();
 }
 
+/**
+ * ページルートの認証処理。
+ * cookie の auth-token を検証し、無効なら /login にリダイレクトする。
+ */
+async function handlePageAuth(req: NextRequest): Promise<NextResponse> {
+  const token = req.cookies.get("auth-token")?.value;
+
+  if (!token) {
+    const loginUrl = new URL("/login", req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (isBlacklisted(token)) {
+    const loginUrl = new URL("/login", req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  try {
+    await verifyToken(token);
+  } catch {
+    const loginUrl = new URL("/login", req.url);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return NextResponse.next();
+}
+
 export const config = {
   matcher: [
     /*
-     * `/api/auth/login` を除く全ての `/api/**` パスに適用する。
-     * Next.js の matcher は正規表現ではなく glob パターン。
-     * 否定先読みは使えないため、negative matcher を使う。
+     * `/api/auth/login` と `/login` は認証不要。
+     * `/api/**` はBearer トークン検証。
+     * `/(app)/**` 配下のページは cookie 検証。
+     *
+     * 静的アセット (_next, favicon 等) は除外。
      */
     "/api/((?!auth/login).*)",
+    "/dashboard/:path*",
+    "/reports/:path*",
+    "/customers/:path*",
   ],
 };

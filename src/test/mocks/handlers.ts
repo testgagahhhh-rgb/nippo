@@ -2,7 +2,7 @@ import { http, HttpResponse } from "msw";
 
 export const handlers = [
   // 認証
-  http.post("/api/v1/auth/login", () => {
+  http.post("/api/auth/login", () => {
     return HttpResponse.json({
       data: {
         token: "mock-token",
@@ -19,7 +19,7 @@ export const handlers = [
   }),
 
   // 日報一覧
-  http.get("/api/v1/reports", () => {
+  http.get("/api/reports", () => {
     return HttpResponse.json({
       data: [],
       meta: { total: 0, page: 1, per_page: 20 },
@@ -27,7 +27,7 @@ export const handlers = [
   }),
 
   // 顧客一覧
-  http.get("/api/v1/customers", () => {
+  http.get("/api/customers", () => {
     return HttpResponse.json({
       data: [],
       meta: { total: 0, page: 1, per_page: 50 },

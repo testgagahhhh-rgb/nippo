@@ -18,7 +18,7 @@ export default function ReportDetailPage() {
   useEffect(() => {
     async function fetchReport() {
       try {
-        const res = await fetch(`/api/v1/reports/${params.id}`);
+        const res = await fetch(`/api/reports/${params.id}`);
         if (!res.ok) {
           throw new Error("日報の取得に失敗しました。");
         }

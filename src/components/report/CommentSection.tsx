@@ -50,7 +50,7 @@ export function CommentSection({
     setError(null);
 
     try {
-      const res = await fetch(`/api/v1/reports/${reportId}/comments`, {
+      const res = await fetch(`/api/reports/${reportId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ target_type: targetType, content: trimmed }),

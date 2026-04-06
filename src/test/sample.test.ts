@@ -8,14 +8,14 @@ describe("テスト環境のセットアップ確認", () => {
   });
 
   it("MSW でAPIレスポンスをモックできること", async () => {
-    const res = await fetch("/api/v1/reports");
+    const res = await fetch("/api/reports");
     const json = await res.json();
     expect(json.data).toEqual([]);
   });
 
   it("テストごとにハンドラーを上書きできること", async () => {
     server.use(
-      http.get("/api/v1/reports", () => {
+      http.get("/api/reports", () => {
         return HttpResponse.json({
           data: [{ id: 1, report_date: "2026-04-02" }],
           meta: { total: 1, page: 1, per_page: 20 },
@@ -23,7 +23,7 @@ describe("テスト環境のセットアップ確認", () => {
       }),
     );
 
-    const res = await fetch("/api/v1/reports");
+    const res = await fetch("/api/reports");
     const json = await res.json();
     expect(json.meta.total).toBe(1);
   });

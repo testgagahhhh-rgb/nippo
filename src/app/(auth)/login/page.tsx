@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiClient } from "@/src/lib/api/client";
 import { validateEmail, validatePassword } from "@/src/lib/validations/auth";
+import { setAuthToken } from "@/src/lib/auth/session";
 
 interface LoginResponse {
   data: {
@@ -57,6 +58,9 @@ export default function LoginPage() {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
+      // cookieにトークンを保存
+      setAuthToken(res.data.token);
+      // 後方互換: localStorageにも保存
       localStorage.setItem("token", res.data.token);
       router.push("/dashboard");
     } catch {

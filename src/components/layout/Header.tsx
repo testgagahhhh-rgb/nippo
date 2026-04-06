@@ -1,10 +1,22 @@
+"use client";
+
+import { useRouter } from "next/navigation";
 import type { User } from "@/src/types";
+import { removeAuthToken } from "@/src/lib/auth/session";
 
 type HeaderProps = {
   user: User;
 };
 
 export function Header({ user }: HeaderProps) {
+  const router = useRouter();
+
+  function handleLogout() {
+    removeAuthToken();
+    localStorage.removeItem("token");
+    router.push("/login");
+  }
+
   return (
     <header className="border-b border-gray-200 bg-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
@@ -15,6 +27,7 @@ export function Header({ user }: HeaderProps) {
           </span>
           <button
             type="button"
+            onClick={handleLogout}
             className="rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200"
           >
             ログアウト

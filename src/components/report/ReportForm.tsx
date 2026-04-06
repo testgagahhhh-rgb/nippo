@@ -109,10 +109,7 @@ export function ReportForm({ mode, customers, initialData, reportId }: ReportFor
     try {
       const payload = buildPayload("draft");
       // eslint-disable-next-line no-console
-      console.log(
-        mode === "edit" ? `PUT /api/v1/reports/${reportId}` : "POST /api/v1/reports",
-        payload,
-      );
+      console.log(mode === "edit" ? `PUT /api/reports/${reportId}` : "POST /api/reports", payload);
       router.push("/dashboard");
     } finally {
       setIsSubmitting(false);
@@ -127,10 +124,7 @@ export function ReportForm({ mode, customers, initialData, reportId }: ReportFor
       const payload = buildPayload("submitted");
       const mockId = reportId ?? "new-1";
       // eslint-disable-next-line no-console
-      console.log(
-        mode === "edit" ? `PUT /api/v1/reports/${reportId}` : "POST /api/v1/reports",
-        payload,
-      );
+      console.log(mode === "edit" ? `PUT /api/reports/${reportId}` : "POST /api/reports", payload);
       router.push(`/reports/${mockId}`);
     } finally {
       setIsSubmitting(false);

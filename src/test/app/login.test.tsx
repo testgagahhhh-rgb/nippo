@@ -15,6 +15,8 @@ describe("ログイン画面 (SCR-01)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    // cookieをクリア
+    document.cookie = "auth-token=; path=/; max-age=0";
   });
 
   it("メールアドレス・パスワード入力欄とログインボタンが表示されること", () => {
@@ -53,7 +55,7 @@ describe("ログイン画面 (SCR-01)", () => {
     expect(screen.getByText("パスワードは8文字以上で入力してください")).toBeInTheDocument();
   });
 
-  it("ログイン成功時にトークンをlocalStorageに保存し /dashboard へ遷移すること", async () => {
+  it("ログイン成功時にトークンをcookieとlocalStorageに保存し /dashboard へ遷移すること", async () => {
     const user = userEvent.setup();
     render(<LoginPage />);
 
@@ -64,12 +66,14 @@ describe("ログイン画面 (SCR-01)", () => {
     await waitFor(() => {
       expect(localStorage.getItem("token")).toBe("mock-token");
     });
+    // cookieにもトークンが保存されること
+    expect(document.cookie).toContain("auth-token=mock-token");
     expect(mockPush).toHaveBeenCalledWith("/dashboard");
   });
 
   it("ログイン失敗時にエラーメッセージが表示されること", async () => {
     server.use(
-      http.post("/api/v1/auth/login", () => {
+      http.post("/api/auth/login", () => {
         return HttpResponse.json({ error: "Unauthorized" }, { status: 401 });
       }),
     );
