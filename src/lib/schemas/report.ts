@@ -18,3 +18,16 @@ export const createReportSchema = z.object({
 });
 
 export type CreateReportInput = z.infer<typeof createReportSchema>;
+
+export const reportListQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  per_page: z.coerce.number().int().positive().max(100).default(20),
+  year_month: z
+    .string()
+    .regex(/^\d{4}-\d{2}$/, "YYYY-MM形式で入力してください")
+    .optional(),
+  user_id: z.coerce.number().int().positive().optional(),
+  status: z.enum(["draft", "submitted"]).optional(),
+});
+
+export type ReportListQuery = z.infer<typeof reportListQuerySchema>;
