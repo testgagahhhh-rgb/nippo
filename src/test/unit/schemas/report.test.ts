@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { createReportSchema, reportListQuerySchema } from "@/lib/schemas/report";
+import {
+  createReportSchema,
+  reportListQuerySchema,
+  updateReportSchema,
+} from "@/lib/schemas/report";
 
 describe("createReportSchema", () => {
   const validInput = {
@@ -141,6 +145,41 @@ describe("reportListQuerySchema", () => {
       year_month: "2026-04",
       user_id: "1",
       status: "submitted",
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("updateReportSchema", () => {
+  const validInput = {
+    visit_records: [{ id: 1, customer_id: 1, content: "更新テスト", visited_at: "10:00" }],
+    problem: "課題更新",
+    plan: "計画更新",
+  };
+
+  it("正常な更新入力を受け付ける", () => {
+    const result = updateReportSchema.safeParse(validInput);
+    expect(result.success).toBe(true);
+  });
+
+  it("visit_recordsのidが省略可能（新規追加）", () => {
+    const result = updateReportSchema.safeParse({
+      visit_records: [{ customer_id: 1, content: "新規追加" }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("visit_recordsが空配列ならエラー", () => {
+    const result = updateReportSchema.safeParse({
+      ...validInput,
+      visit_records: [],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("report_dateが省略可能", () => {
+    const result = updateReportSchema.safeParse({
+      visit_records: [{ customer_id: 1, content: "テスト" }],
     });
     expect(result.success).toBe(true);
   });
