@@ -1,56 +1,64 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getAuthUser } from "@/lib/auth";
-import { reports, users } from "@/lib/mockData";
+import { apiFetch } from "@/lib/api/client";
 import { ReportTable } from "@/components/dashboard/ReportTable";
 import { ReportFilters } from "@/components/dashboard/ReportFilters";
+import type { DailyReport, User } from "@/types";
 
 export default function DashboardPage() {
   const authUser = getAuthUser();
   const isSales = authUser?.role === "sales";
 
+  const [reports, setReports] = useState<DailyReport[]>([]);
+  const [salesUsers, setSalesUsers] = useState<User[]>([]);
   const [yearMonth, setYearMonth] = useState("");
   const [status, setStatus] = useState("");
   const [authorId, setAuthorId] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const salesUsers = useMemo(() => users.filter((u) => u.role === "sales"), []);
+  const fetchReports = useCallback(async () => {
+    const params = new URLSearchParams();
+    if (yearMonth) params.set("year_month", yearMonth);
+    if (status) params.set("status", status);
+    if (authorId) params.set("user_id", authorId);
+    params.set("per_page", "100");
 
-  const filteredReports = useMemo(() => {
-    let result = [...reports];
-
-    // 営業は自分の日報のみ
-    if (isSales && authUser) {
-      result = result.filter((r) => r.userId === authUser.id);
+    const result = await apiFetch<DailyReport[]>(`/reports?${params}`);
+    if (result.ok) {
+      setReports(result.data);
     }
+    setLoading(false);
+  }, [yearMonth, status, authorId]);
 
-    // 上長は未コメントを優先表示
-    if (authUser?.role === "manager") {
-      result.sort((a, b) => {
-        const aUncommented = a.status === "submitted" && a.comments.length === 0 ? 0 : 1;
-        const bUncommented = b.status === "submitted" && b.comments.length === 0 ? 0 : 1;
-        return aUncommented - bUncommented;
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
+
+  useEffect(() => {
+    if (!isSales) {
+      apiFetch<User[]>("/users?per_page=100").then((result) => {
+        if (result.ok) {
+          setSalesUsers(result.data.filter((u) => u.role === "sales"));
+        }
       });
     }
+  }, [isSales]);
 
-    // フィルター: 年月
-    if (yearMonth) {
-      result = result.filter((r) => r.reportDate.startsWith(yearMonth));
-    }
+  const sortedReports = useMemo(() => {
+    if (authUser?.role !== "manager") return reports;
+    return [...reports].sort((a, b) => {
+      const aUncommented = a.status === "submitted" && a.comments.length === 0 ? 0 : 1;
+      const bUncommented = b.status === "submitted" && b.comments.length === 0 ? 0 : 1;
+      return aUncommented - bUncommented;
+    });
+  }, [reports, authUser?.role]);
 
-    // フィルター: 担当者
-    if (authorId) {
-      result = result.filter((r) => r.userId === Number(authorId));
-    }
-
-    // フィルター: ステータス
-    if (status) {
-      result = result.filter((r) => r.status === status);
-    }
-
-    return result;
-  }, [isSales, authUser, yearMonth, authorId, status]);
+  if (loading) {
+    return <div className="py-8 text-center text-gray-500">読み込み中...</div>;
+  }
 
   return (
     <div>
@@ -79,7 +87,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <ReportTable reports={filteredReports} showAuthor={!isSales} />
+      <ReportTable reports={sortedReports} showAuthor={!isSales} />
     </div>
   );
 }

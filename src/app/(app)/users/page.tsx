@@ -1,10 +1,26 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { users } from "@/lib/mockData";
 import { getRoleLabel } from "@/lib/auth";
+import { apiFetch } from "@/lib/api/client";
+import type { User } from "@/types";
 
 export default function UsersPage() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiFetch<User[]>("/users?per_page=100").then((result) => {
+      if (result.ok) setUsers(result.data);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) {
+    return <div className="py-8 text-center text-gray-500">読み込み中...</div>;
+  }
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">

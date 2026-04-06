@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Customer } from "@/types";
+import { apiFetch } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ export function CustomerForm({ customer }: CustomerFormProps) {
   const [email, setEmail] = useState(customer?.email ?? "");
   const [address, setAddress] = useState(customer?.address ?? "");
   const [errors, setErrors] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   const validate = (): boolean => {
     const errs: string[] = [];
@@ -35,12 +37,29 @@ export function CustomerForm({ customer }: CustomerFormProps) {
     return errs.length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
+    setSubmitting(true);
 
-    // mock: 実際にはAPIを呼ぶ
-    console.log("Save customer:", { name, companyName, phone, email, address });
+    const body = {
+      name,
+      company_name: companyName,
+      phone: phone || null,
+      email: email || null,
+      address: address || null,
+    };
+
+    const result = isEdit
+      ? await apiFetch(`/customers/${customer.id}`, { method: "PUT", body: JSON.stringify(body) })
+      : await apiFetch("/customers", { method: "POST", body: JSON.stringify(body) });
+
+    if (!result.ok) {
+      setErrors([result.error.message]);
+      setSubmitting(false);
+      return;
+    }
+
     router.push("/customers");
   };
 
@@ -107,7 +126,9 @@ export function CustomerForm({ customer }: CustomerFormProps) {
           <Button type="button" variant="outline" onClick={() => router.push("/customers")}>
             キャンセル
           </Button>
-          <Button type="submit">保存</Button>
+          <Button type="submit" disabled={submitting}>
+            {submitting ? "保存中..." : "保存"}
+          </Button>
         </div>
       </form>
     </div>

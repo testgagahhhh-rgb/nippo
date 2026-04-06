@@ -1,4 +1,5 @@
 import type { AuthUser } from "@/types";
+import { clearToken } from "@/lib/api/client";
 
 const AUTH_STORAGE_KEY = "nippo_auth_user";
 
@@ -19,9 +20,10 @@ export function setAuthUser(user: AuthUser): void {
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
 }
 
-/** ログアウト */
+/** ログアウト（トークンとユーザー情報を両方クリア） */
 export function clearAuthUser(): void {
   localStorage.removeItem(AUTH_STORAGE_KEY);
+  clearToken();
 }
 
 /** ロールの日本語表示 */

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Customer, DailyReport, ReportStatus } from "@/types";
-import { customers } from "@/lib/mockData";
+import { apiFetch } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface VisitRecordInput {
+  id?: number;
   customerId: string;
   content: string;
   visitedAt: string;
@@ -22,9 +23,11 @@ export function ReportForm({ report }: ReportFormProps) {
   const router = useRouter();
   const isEdit = !!report;
 
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [visitRecords, setVisitRecords] = useState<VisitRecordInput[]>(
     report
       ? report.visitRecords.map((vr) => ({
+          id: vr.id,
           customerId: String(vr.customerId),
           content: vr.content,
           visitedAt: vr.visitedAt ?? "",
@@ -34,6 +37,13 @@ export function ReportForm({ report }: ReportFormProps) {
   const [problem, setProblem] = useState(report?.problem ?? "");
   const [plan, setPlan] = useState(report?.plan ?? "");
   const [errors, setErrors] = useState<string[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    apiFetch<Customer[]>("/customers?per_page=100").then((result) => {
+      if (result.ok) setCustomers(result.data);
+    });
+  }, []);
 
   const addRow = () => {
     setVisitRecords([...visitRecords, { customerId: "", content: "", visitedAt: "" }]);
@@ -60,15 +70,50 @@ export function ReportForm({ report }: ReportFormProps) {
     return errs.length === 0;
   };
 
-  const handleSave = (status: ReportStatus) => {
+  const handleSave = async (status: ReportStatus) => {
     if (status === "submitted" && !validate()) return;
+    setSubmitting(true);
 
-    // mock: 実際にはAPIを呼ぶ
-    console.log("Save report:", { visitRecords, problem, plan, status });
-    if (status === "submitted") {
-      router.push(`/reports/${report?.id ?? "1"}`);
+    const body = {
+      report_date: report?.reportDate ?? new Date().toISOString().slice(0, 10),
+      visit_records: visitRecords.map((vr) => ({
+        ...(vr.id ? { id: vr.id } : {}),
+        customer_id: Number(vr.customerId),
+        content: vr.content,
+        visited_at: vr.visitedAt || null,
+      })),
+      problem: problem || null,
+      plan: plan || null,
+    };
+
+    if (isEdit) {
+      const result = await apiFetch(`/reports/${report.id}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+      if (!result.ok) {
+        setErrors([result.error.message]);
+        setSubmitting(false);
+        return;
+      }
+      if (status === "submitted") {
+        await apiFetch(`/reports/${report.id}/submit`, { method: "POST" });
+      }
+      router.push(status === "submitted" ? `/reports/${report.id}` : "/dashboard");
     } else {
-      router.push("/dashboard");
+      const result = await apiFetch<{ id: number }>("/reports", {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+      if (!result.ok) {
+        setErrors([result.error.message]);
+        setSubmitting(false);
+        return;
+      }
+      if (status === "submitted") {
+        await apiFetch(`/reports/${result.data.id}/submit`, { method: "POST" });
+      }
+      router.push(status === "submitted" ? `/reports/${result.data.id}` : "/dashboard");
     }
   };
 
@@ -91,7 +136,6 @@ export function ReportForm({ report }: ReportFormProps) {
         </div>
       )}
 
-      {/* 訪問記録 */}
       <section className="mb-6">
         <h2 className="mb-3 text-lg font-semibold">訪問記録</h2>
         <div className="space-y-3">
@@ -161,7 +205,6 @@ export function ReportForm({ report }: ReportFormProps) {
         </button>
       </section>
 
-      {/* 今の課題・相談 */}
       <section className="mb-6">
         <h2 className="mb-3 text-lg font-semibold">今の課題・相談</h2>
         <textarea
@@ -174,7 +217,6 @@ export function ReportForm({ report }: ReportFormProps) {
         />
       </section>
 
-      {/* 明日やること */}
       <section className="mb-6">
         <h2 className="mb-3 text-lg font-semibold">明日やること</h2>
         <textarea
@@ -187,12 +229,13 @@ export function ReportForm({ report }: ReportFormProps) {
         />
       </section>
 
-      {/* アクション */}
       <div className="flex justify-end gap-3">
-        <Button variant="outline" onClick={() => handleSave("draft")}>
+        <Button variant="outline" onClick={() => handleSave("draft")} disabled={submitting}>
           下書き保存
         </Button>
-        <Button onClick={() => handleSave("submitted")}>提出する</Button>
+        <Button onClick={() => handleSave("submitted")} disabled={submitting}>
+          {submitting ? "送信中..." : "提出する"}
+        </Button>
       </div>
     </div>
   );
