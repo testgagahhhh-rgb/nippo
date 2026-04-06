@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+.env
+.env.local
+.env.*.local
+npm-debug.log*
+.husky
+.vscode
+coverage
+__tests__
+*.test.ts
+*.spec.ts
+vitest.config.*
