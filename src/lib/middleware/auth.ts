@@ -8,11 +8,7 @@ import { isBlacklisted } from "@/src/lib/auth/token-blacklist";
 
 export type Role = "sales" | "manager" | "admin";
 
-export type Action =
-  | "create_report"
-  | "post_comment"
-  | "manage_customers"
-  | "manage_users";
+export type Action = "create_report" | "post_comment" | "manage_customers" | "manage_users";
 
 /**
  * 認証済みユーザーの型。
@@ -39,16 +35,6 @@ const PERMISSION_MAP: Record<Action, Role[]> = {
 
 /**
  * ユーザーが指定したアクションを実行する権限を持つか確認する。
- *
- * UT-006 の 8 ケース全対応:
- *   1. sales    + create_report    → true
- *   2. manager  + create_report    → false
- *   3. manager  + post_comment     → true
- *   4. sales    + post_comment     → false
- *   5. admin    + manage_users     → true
- *   6. manager  + manage_users     → false
- *   7. sales    + manage_customers → false
- *   8. manager  + manage_customers → true
  */
 export function hasPermission(user: AuthUser, action: Action): boolean {
   return PERMISSION_MAP[action].includes(user.role);
@@ -145,22 +131,10 @@ export async function getAuthUser(req: NextRequest): Promise<AuthUser> {
 
 /**
  * ルートハンドラー内でユーザーを取得し、失敗時に 401 レスポンスを返す。
- *
- * @example
- * ```ts
- * export async function GET(req: NextRequest) {
- *   const result = await requireAuth(req);
- *   if (result.error) return result.error;
- *   const { user } = result;
- *   // ... use user
- * }
- * ```
  */
 export async function requireAuth(
   req: NextRequest,
-): Promise<
-  { user: AuthUser; error: null } | { user: null; error: NextResponse }
-> {
+): Promise<{ user: AuthUser; error: null } | { user: null; error: NextResponse }> {
   try {
     const user = await getAuthUser(req);
     return { user, error: null };
@@ -192,11 +166,6 @@ export async function requireAuth(
 /**
  * ロール違反時に 403 レスポンスを返すヘルパー。
  */
-export function forbiddenResponse(
-  message = "操作する権限がありません",
-): NextResponse {
-  return NextResponse.json(
-    { error: { code: "FORBIDDEN", message } },
-    { status: 403 },
-  );
+export function forbiddenResponse(message = "操作する権限がありません"): NextResponse {
+  return NextResponse.json({ error: { code: "FORBIDDEN", message } }, { status: 403 });
 }
