@@ -14,3 +14,5 @@ __tests__
 *.test.ts
 *.spec.ts
 vitest.config.*
+worktrees
+docs
