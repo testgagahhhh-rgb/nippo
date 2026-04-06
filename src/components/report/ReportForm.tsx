@@ -13,7 +13,7 @@ type ReportFormProps = {
 };
 
 function createEmptyVisitRecord(): VisitRecord {
-  return { customer_id: "", content: "", visited_at: "" };
+  return { customer_id: null, content: "", visited_at: null };
 }
 
 function formatToday(): string {
@@ -67,7 +67,7 @@ export function ReportForm({ mode, customers, initialData, reportId }: ReportFor
 
     visitRecords.forEach((record, i) => {
       const recErr: { customer_id?: string; content?: string } = {};
-      if (record.customer_id === "") {
+      if (record.customer_id === null) {
         recErr.customer_id = "顧客を選択してください。";
         valid = false;
       }
@@ -178,7 +178,7 @@ export function ReportForm({ mode, customers, initialData, reportId }: ReportFor
         <div className="flex flex-col gap-3">
           {visitRecords.map((record, index) => (
             <VisitRecordRow
-              key={record.id ?? index}
+              key={index}
               index={index}
               record={record}
               customers={customers}

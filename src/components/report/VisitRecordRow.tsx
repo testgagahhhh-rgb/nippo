@@ -31,7 +31,7 @@ export function VisitRecordRow({
           </label>
           <select
             id={`customer-${index}`}
-            value={record.customer_id}
+            value={record.customer_id ?? ""}
             onChange={(e) => {
               const val = e.target.value;
               onChange(index, "customer_id", val === "" ? "" : Number(val));
@@ -85,7 +85,7 @@ export function VisitRecordRow({
           <input
             id={`time-${index}`}
             type="time"
-            value={record.visited_at}
+            value={record.visited_at ?? ""}
             onChange={(e) => onChange(index, "visited_at", e.target.value)}
             className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
           />

@@ -6,7 +6,7 @@ export const metadata = {
 };
 
 export default function NewReportPage() {
-  const customers = getCustomers();
+  const { data: customers } = getCustomers();
 
   return <ReportForm mode="new" customers={customers} />;
 }

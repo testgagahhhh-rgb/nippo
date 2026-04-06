@@ -10,3 +10,10 @@ export function getCurrentUser(): User {
     department: { id: 1, name: "東京営業部" },
   };
 }
+
+/** クライアントサイド用モック認証フック */
+export function useAuth(): { user: User } {
+  return {
+    user: getCurrentUser(),
+  };
+}

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/src/lib/auth/jwt";
+import { verifyToken, type JwtPayload } from "@/src/lib/auth/jwt";
 import { isBlacklisted } from "@/src/lib/auth/token-blacklist";
 
 // ---------------------------------------------------------------------------
@@ -168,4 +168,65 @@ export async function requireAuth(
  */
 export function forbiddenResponse(message = "操作する権限がありません"): NextResponse {
   return NextResponse.json({ error: { code: "FORBIDDEN", message } }, { status: 403 });
+}
+
+// ---------------------------------------------------------------------------
+// withAuth / requireRole — HOF pattern for customers / users route handlers
+// ---------------------------------------------------------------------------
+
+type AuthHandler = (req: NextRequest, user: JwtPayload) => Promise<NextResponse>;
+
+/**
+ * Route Handler を認証で包むHOF。
+ * Bearer トークンを検証し、JwtPayload をハンドラーに渡す。
+ */
+export function withAuth(handler: AuthHandler): (req: NextRequest) => Promise<NextResponse> {
+  return async (req: NextRequest) => {
+    const token = req.headers.get("authorization")?.replace("Bearer ", "").trim();
+    if (!token) {
+      return NextResponse.json(
+        { error: { code: "UNAUTHORIZED", message: "認証トークンが指定されていません" } },
+        { status: 401 },
+      );
+    }
+
+    if (isBlacklisted(token)) {
+      return NextResponse.json(
+        { error: { code: "UNAUTHORIZED", message: "無効なトークンです" } },
+        { status: 401 },
+      );
+    }
+
+    let payload: JwtPayload;
+    try {
+      payload = await verifyToken(token);
+    } catch {
+      return NextResponse.json(
+        { error: { code: "UNAUTHORIZED", message: "トークンが無効または期限切れです" } },
+        { status: 401 },
+      );
+    }
+
+    return handler(req, payload);
+  };
+}
+
+/**
+ * ロール制限付きハンドラーを返すHOF。
+ * withAuth 内部で使用する。
+ */
+export function requireRole(roles: Role[], handler: AuthHandler): AuthHandler {
+  return async (req: NextRequest, user: JwtPayload) => {
+    const { prisma } = await import("@/src/lib/prisma");
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.userId },
+      select: { role: true },
+    });
+
+    if (!dbUser || !roles.includes(dbUser.role as Role)) {
+      return forbiddenResponse();
+    }
+
+    return handler(req, user);
+  };
 }

@@ -69,3 +69,38 @@ export const listReportsQuerySchema = z.object({
 });
 
 export type ListReportsQuery = z.infer<typeof listReportsQuerySchema>;
+
+// ---------------------------------------------------------------------------
+// PUT /reports/:id 更新スキーマ
+// ---------------------------------------------------------------------------
+
+export const updateReportSchema = z.object({
+  report_date: z
+    .string("report_date は必須です")
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "report_date は YYYY-MM-DD 形式で指定してください")
+    .refine((val) => {
+      const date = new Date(val);
+      return !isNaN(date.getTime()) && val === date.toISOString().slice(0, 10);
+    }, "report_date が不正な日付です"),
+  visit_records: z.array(visitRecordSchema).min(1, "visit_records は1件以上必要です"),
+  problem: z.string().max(2000, "problem は2000文字以内で入力してください").optional(),
+  plan: z.string().max(2000, "plan は2000文字以内で入力してください").optional(),
+});
+
+export type UpdateReportInput = z.infer<typeof updateReportSchema>;
+
+// ---------------------------------------------------------------------------
+// POST /reports/:id/comments コメント作成スキーマ
+// ---------------------------------------------------------------------------
+
+export const createCommentSchema = z.object({
+  target_type: z.enum(["problem", "plan"], {
+    message: "target_type は problem または plan を指定してください",
+  }),
+  content: z
+    .string("content は必須です")
+    .min(1, "content は1文字以上必要です")
+    .max(1000, "content は1000文字以内で入力してください"),
+});
+
+export type CreateCommentInput = z.infer<typeof createCommentSchema>;

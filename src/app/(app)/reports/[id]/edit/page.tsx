@@ -19,16 +19,17 @@ export default async function EditReportPage({ params }: EditReportPageProps) {
     notFound();
   }
 
-  const customers = getCustomers();
+  const { data: customers } = getCustomers();
 
   const initialData: ReportFormData = {
     report_date: report.report_date,
-    visit_records: report.visit_records.map((vr) => ({
-      id: vr.id,
-      customer_id: vr.customer.id,
-      content: vr.content,
-      visited_at: vr.visited_at,
-    })),
+    visit_records: report.visit_records.map(
+      (vr: { customer: { id: number }; content: string; visited_at: string | null }) => ({
+        customer_id: vr.customer.id,
+        content: vr.content,
+        visited_at: vr.visited_at,
+      }),
+    ),
     problem: report.problem,
     plan: report.plan,
   };

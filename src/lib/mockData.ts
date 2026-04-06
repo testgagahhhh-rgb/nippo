@@ -1,4 +1,4 @@
-import type { Customer, PaginationMeta } from "@/src/types";
+import type { Customer, PaginationMeta, Report, ReportUser } from "@/src/types";
 
 const customers: Customer[] = [
   {
@@ -123,4 +123,106 @@ export function getCustomers(params?: { q?: string; page?: number }): {
 
 export function getCustomerById(id: string): Customer | undefined {
   return customers.find((c) => c.id === Number(id));
+}
+
+// ---------------------------------------------------------------------------
+// Mock Reports
+// ---------------------------------------------------------------------------
+
+const mockReports: Report[] = [
+  {
+    id: 1,
+    report_date: "2026-04-01",
+    status: "submitted",
+    user: { id: 1, name: "佐藤 管理太郎" },
+    has_unread_comment: false,
+  },
+  {
+    id: 2,
+    report_date: "2026-04-02",
+    status: "draft",
+    user: { id: 2, name: "田中 営業一郎" },
+    has_unread_comment: false,
+  },
+  {
+    id: 3,
+    report_date: "2026-04-03",
+    status: "submitted",
+    user: { id: 2, name: "田中 営業一郎" },
+    has_unread_comment: true,
+  },
+];
+
+export function getReports(params?: {
+  page?: number;
+  per_page?: number;
+  year_month?: string;
+  user_id?: number;
+  status?: string;
+}): { data: Report[]; meta: PaginationMeta } {
+  const page = params?.page ?? 1;
+  const perPage = params?.per_page ?? 20;
+
+  let filtered = mockReports;
+
+  if (params?.year_month) {
+    filtered = filtered.filter((r) => r.report_date.startsWith(params.year_month!));
+  }
+  if (params?.user_id !== undefined) {
+    filtered = filtered.filter((r) => r.user.id === params.user_id);
+  }
+  if (params?.status) {
+    filtered = filtered.filter((r) => r.status === params.status);
+  }
+
+  const start = (page - 1) * perPage;
+  const paginated = filtered.slice(start, start + perPage);
+
+  return {
+    data: paginated,
+    meta: { total: filtered.length, page, per_page: perPage },
+  };
+}
+
+export function getFilterUsers(): ReportUser[] {
+  return [
+    { id: 1, name: "佐藤 管理太郎" },
+    { id: 2, name: "田中 営業一郎" },
+  ];
+}
+
+type MockReportDetail = {
+  id: number;
+  report_date: string;
+  status: string;
+  visit_records: {
+    id: number;
+    customer: { id: number; name: string; company_name: string };
+    content: string;
+    visited_at: string | null;
+  }[];
+  problem: string;
+  plan: string;
+};
+
+const mockReportDetails: MockReportDetail[] = [
+  {
+    id: 1,
+    report_date: "2026-04-01",
+    status: "submitted",
+    visit_records: [
+      {
+        id: 1,
+        customer: { id: 1, name: "山田 一郎", company_name: "株式会社ABC" },
+        content: "新製品の提案",
+        visited_at: "10:00",
+      },
+    ],
+    problem: "競合他社の価格が下がっている",
+    plan: "新しい価格表を作成する",
+  },
+];
+
+export function getReportById(id: string): MockReportDetail | undefined {
+  return mockReportDetails.find((r) => r.id === Number(id));
 }

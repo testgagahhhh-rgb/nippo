@@ -17,7 +17,9 @@ export async function generateToken(userId: number): Promise<string> {
     .sign(getSecret());
 }
 
-export async function verifyToken(token: string): Promise<{ userId: number }> {
+export type JwtPayload = { userId: number };
+
+export async function verifyToken(token: string): Promise<JwtPayload> {
   const { payload } = await jwtVerify(token, getSecret());
   if (typeof payload.userId !== "number") {
     throw new Error("Invalid token payload");

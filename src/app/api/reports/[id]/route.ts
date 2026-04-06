@@ -196,13 +196,15 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   }
 
   // 顧客IDの存在チェック
-  const customerIds = [...new Set(input.visit_records.map((r) => r.customer_id))];
+  const customerIds: number[] = [
+    ...new Set(input.visit_records.map((r: { customer_id: number }) => r.customer_id)),
+  ];
   const existingCustomers = await prisma.customer.findMany({
     where: { id: { in: customerIds } },
     select: { id: true },
   });
   const existingCustomerIds = new Set(existingCustomers.map((c) => c.id));
-  const invalidCustomerIds = customerIds.filter((id) => !existingCustomerIds.has(id));
+  const invalidCustomerIds = customerIds.filter((id: number) => !existingCustomerIds.has(id));
   if (invalidCustomerIds.length > 0) {
     return NextResponse.json(
       {
@@ -230,11 +232,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         problem: input.problem ?? null,
         plan: input.plan ?? null,
         visitRecords: {
-          create: input.visit_records.map((r) => ({
-            customerId: r.customer_id,
-            content: r.content,
-            visitedAt: r.visited_at ?? null,
-          })),
+          create: input.visit_records.map(
+            (r: { customer_id: number; content: string; visited_at?: string }) => ({
+              customerId: r.customer_id,
+              content: r.content,
+              visitedAt: r.visited_at ?? null,
+            }),
+          ),
         },
       },
       include: {

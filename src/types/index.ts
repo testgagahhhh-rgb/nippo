@@ -37,3 +37,30 @@ export type VisitRecord = {
   content: string;
   visited_at: string | null;
 };
+
+export type ReportStatus = "draft" | "submitted";
+
+export type Report = {
+  id: number;
+  report_date: string;
+  status: ReportStatus;
+  user: { id: number; name: string };
+  has_unread_comment: boolean;
+};
+
+export type ReportFormData = {
+  report_date: string;
+  visit_records: VisitRecord[];
+  problem: string;
+  plan: string;
+};
+
+export type ReportUser = {
+  id: number;
+  name: string;
+};
+
+export const STATUS_LABELS: Record<ReportStatus, string> = {
+  draft: "下書き",
+  submitted: "提出済み",
+};
