@@ -1,12 +1,108 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateRequest, authorizeRole, type AuthUser } from "@/lib/middleware/auth";
-import { createReportSchema } from "@/lib/schemas/report";
+import { createReportSchema, reportListQuerySchema } from "@/lib/schemas/report";
+import { Prisma } from "@prisma/client";
 
 class ReportAlreadyExistsError extends Error {
   constructor() {
     super("Report already exists");
   }
+}
+
+export async function GET(request: NextRequest) {
+  const authResult = await authenticateRequest(request);
+  if (authResult instanceof NextResponse) return authResult;
+  const user: AuthUser = authResult;
+
+  const params = Object.fromEntries(request.nextUrl.searchParams.entries());
+  const parsed = reportListQuerySchema.safeParse(params);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "クエリパラメータが不正です",
+          details: parsed.error.issues.map((issue) => ({
+            field: issue.path.join("."),
+            message: issue.message,
+          })),
+        },
+      },
+      { status: 400 },
+    );
+  }
+
+  const { page, per_page, year_month, user_id, status } = parsed.data;
+
+  // ロール別のwhere条件
+  const where: Prisma.DailyReportWhereInput = {};
+
+  if (user.role === "sales") {
+    where.userId = user.sub;
+  } else if (user.role === "manager") {
+    if (user_id) {
+      // managerが指定したuser_idが同一部署かチェック
+      const targetUser = await prisma.user.findUnique({
+        where: { id: user_id },
+        select: { departmentId: true },
+      });
+      if (!targetUser || targetUser.departmentId !== user.departmentId) {
+        return NextResponse.json(
+          { error: { code: "FORBIDDEN", message: "他部署のユーザーは指定できません" } },
+          { status: 403 },
+        );
+      }
+      where.userId = user_id;
+    } else {
+      where.user = { departmentId: user.departmentId };
+    }
+  } else if (user.role === "admin") {
+    if (user_id) {
+      where.userId = user_id;
+    }
+  }
+
+  // year_monthフィルター
+  if (year_month) {
+    const [year, month] = year_month.split("-").map(Number);
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 1);
+    where.reportDate = { gte: startDate, lt: endDate };
+  }
+
+  // statusフィルター
+  if (status) {
+    where.status = status;
+  }
+
+  const [reports, total] = await Promise.all([
+    prisma.dailyReport.findMany({
+      where,
+      orderBy: { reportDate: "desc" },
+      skip: (page - 1) * per_page,
+      take: per_page,
+      include: {
+        user: { select: { id: true, name: true } },
+        _count: { select: { comments: true } },
+      },
+    }),
+    prisma.dailyReport.count({ where }),
+  ]);
+
+  return NextResponse.json({
+    data: reports.map((report) => ({
+      id: report.id,
+      report_date: report.reportDate.toISOString().split("T")[0],
+      status: report.status,
+      submitted_at: report.submittedAt?.toISOString() ?? null,
+      user: { id: report.user.id, name: report.user.name },
+      has_unread_comment: report.status === "submitted" && report._count.comments === 0,
+      created_at: report.createdAt.toISOString(),
+      updated_at: report.updatedAt.toISOString(),
+    })),
+    meta: { total, page, per_page },
+  });
 }
 
 export async function POST(request: NextRequest) {
