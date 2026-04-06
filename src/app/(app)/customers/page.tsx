@@ -1,23 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getAuthUser } from "@/lib/auth";
-import { customers } from "@/lib/mockData";
+import { apiFetch } from "@/lib/api/client";
+import type { Customer } from "@/types";
 
 export default function CustomersPage() {
   const authUser = getAuthUser();
   const canEdit = authUser?.role === "manager" || authUser?.role === "admin";
 
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [keyword, setKeyword] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const filtered = useMemo(() => {
-    if (!keyword.trim()) return customers;
-    const q = keyword.toLowerCase();
-    return customers.filter(
-      (c) => c.name.toLowerCase().includes(q) || c.companyName.toLowerCase().includes(q),
-    );
+  useEffect(() => {
+    const params = new URLSearchParams({ per_page: "100" });
+    if (keyword.trim()) params.set("q", keyword.trim());
+    apiFetch<Customer[]>(`/customers?${params}`).then((result) => {
+      if (result.ok) setCustomers(result.data);
+      setLoading(false);
+    });
   }, [keyword]);
+
+  if (loading) {
+    return <div className="py-8 text-center text-gray-500">読み込み中...</div>;
+  }
 
   return (
     <div>
@@ -56,7 +64,7 @@ export default function CustomersPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filtered.map((c) => (
+            {customers.map((c) => (
               <tr key={c.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 text-gray-900">{c.name}</td>
                 <td className="px-4 py-3 text-gray-700">{c.companyName}</td>
@@ -73,7 +81,7 @@ export default function CustomersPage() {
                 )}
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {customers.length === 0 && (
               <tr>
                 <td colSpan={canEdit ? 4 : 3} className="px-4 py-8 text-center text-gray-500">
                   該当する顧客がありません

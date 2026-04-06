@@ -3,11 +3,23 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { setAuthUser } from "@/lib/auth";
-import { mockAuthUsers } from "@/lib/mockData";
+import { apiFetch, setToken } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+interface LoginResponse {
+  token: string;
+  expires_at: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+    department: { id: number; name: string };
+  };
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,15 +33,25 @@ export default function LoginPage() {
     setError("");
     setIsLoading(true);
 
-    // mock認証
-    const entry = mockAuthUsers[email];
-    if (!entry || entry.password !== password) {
-      setError("メールアドレスまたはパスワードが正しくありません");
+    const result = await apiFetch<LoginResponse>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!result.ok) {
+      setError(result.error.message);
       setIsLoading(false);
       return;
     }
 
-    setAuthUser(entry.user);
+    setToken(result.data.token);
+    setAuthUser({
+      id: result.data.user.id,
+      name: result.data.user.name,
+      email: result.data.user.email,
+      role: result.data.user.role as "sales" | "manager" | "admin",
+      departmentId: result.data.user.department.id,
+    });
     router.push("/dashboard");
   };
 

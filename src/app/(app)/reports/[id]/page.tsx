@@ -1,17 +1,35 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAuthUser } from "@/lib/auth";
-import { reports } from "@/lib/mockData";
+import { apiFetch } from "@/lib/api/client";
 import { CommentSection } from "@/components/report/CommentSection";
+import type { DailyReport } from "@/types";
 
 export default function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const report = reports.find((r) => r.id === Number(id));
+  const [report, setReport] = useState<DailyReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notFoundState, setNotFoundState] = useState(false);
 
-  if (!report) {
+  useEffect(() => {
+    apiFetch<DailyReport>(`/reports/${id}`).then((result) => {
+      if (result.ok) {
+        setReport(result.data);
+      } else {
+        setNotFoundState(true);
+      }
+      setLoading(false);
+    });
+  }, [id]);
+
+  if (loading) {
+    return <div className="py-8 text-center text-gray-500">読み込み中...</div>;
+  }
+
+  if (notFoundState || !report) {
     notFound();
   }
 
@@ -26,7 +44,6 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="mx-auto max-w-3xl">
-      {/* ヘッダー */}
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/dashboard" className="text-sm text-blue-600 hover:underline">
@@ -47,7 +64,6 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
         )}
       </div>
 
-      {/* 訪問記録 */}
       <section className="mb-6">
         <h2 className="mb-3 text-lg font-semibold">訪問記録</h2>
         <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
@@ -72,25 +88,33 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
         </div>
       </section>
 
-      {/* 今の課題・相談 */}
       <section className="mb-6">
         <h2 className="mb-3 text-lg font-semibold">今の課題・相談</h2>
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <p className="text-sm whitespace-pre-wrap text-gray-700">
             {report.problem || "（記載なし）"}
           </p>
-          <CommentSection targetType="problem" comments={problemComments} canComment={canComment} />
+          <CommentSection
+            reportId={report.id}
+            targetType="problem"
+            comments={problemComments}
+            canComment={canComment}
+          />
         </div>
       </section>
 
-      {/* 明日やること */}
       <section className="mb-6">
         <h2 className="mb-3 text-lg font-semibold">明日やること</h2>
         <div className="rounded-lg border border-gray-200 bg-white p-4">
           <p className="text-sm whitespace-pre-wrap text-gray-700">
             {report.plan || "（記載なし）"}
           </p>
-          <CommentSection targetType="plan" comments={planComments} canComment={canComment} />
+          <CommentSection
+            reportId={report.id}
+            targetType="plan"
+            comments={planComments}
+            canComment={canComment}
+          />
         </div>
       </section>
     </div>

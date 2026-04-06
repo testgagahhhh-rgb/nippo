@@ -2,40 +2,40 @@
 
 import { useState } from "react";
 import type { CommentTargetType, ManagerComment } from "@/types";
+import { apiFetch } from "@/lib/api/client";
 import { Button } from "@/components/ui/button";
 
 interface CommentSectionProps {
+  reportId: number;
   targetType: CommentTargetType;
   comments: ManagerComment[];
   canComment: boolean;
 }
 
-export function CommentSection({ targetType, comments, canComment }: CommentSectionProps) {
+export function CommentSection({
+  reportId,
+  targetType,
+  comments,
+  canComment,
+}: CommentSectionProps) {
   const [content, setContent] = useState("");
   const [localComments, setLocalComments] = useState(comments);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!content.trim()) return;
+    setSubmitting(true);
 
-    // mock: 実際にはAPIを呼ぶ
-    const newComment: ManagerComment = {
-      id: Date.now(),
-      reportId: 0,
-      userId: 0,
-      targetType,
-      content: content.trim(),
-      createdAt: new Date().toISOString(),
-      user: {
-        id: 0,
-        name: "あなた",
-        email: "",
-        role: "manager",
-        departmentId: 0,
-        department: { id: 0, name: "" },
-      },
-    };
-    setLocalComments([...localComments, newComment]);
-    setContent("");
+    const result = await apiFetch<ManagerComment>(`/reports/${reportId}/comments`, {
+      method: "POST",
+      body: JSON.stringify({ target_type: targetType, content: content.trim() }),
+    });
+
+    if (result.ok) {
+      setLocalComments([...localComments, result.data]);
+      setContent("");
+    }
+    setSubmitting(false);
   };
 
   return (
@@ -66,8 +66,13 @@ export function CommentSection({ targetType, comments, canComment }: CommentSect
             className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
             placeholder="コメントを入力..."
           />
-          <Button onClick={handleSubmit} disabled={!content.trim()} size="sm" className="self-end">
-            送信
+          <Button
+            onClick={handleSubmit}
+            disabled={!content.trim() || submitting}
+            size="sm"
+            className="self-end"
+          >
+            {submitting ? "送信中..." : "送信"}
           </Button>
         </div>
       )}

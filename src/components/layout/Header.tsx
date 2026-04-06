@@ -3,12 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getAuthUser, getRoleLabel, clearAuthUser } from "@/lib/auth";
+import { apiFetch } from "@/lib/api/client";
 
 export function Header() {
   const router = useRouter();
   const user = getAuthUser();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await apiFetch("/auth/logout", { method: "POST" });
     clearAuthUser();
     router.push("/login");
   };
