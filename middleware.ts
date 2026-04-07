@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth/jwt";
 import { isTokenBlacklisted } from "@/lib/auth/token-blacklist";
 
-const PUBLIC_PATHS = ["/api/auth/login", "/api/auth/logout"];
+const PUBLIC_PATHS = ["/api/auth/login", "/api/auth/logout", "/api/health"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
