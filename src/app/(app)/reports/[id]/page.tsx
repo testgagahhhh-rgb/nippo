@@ -8,6 +8,53 @@ import { apiFetch } from "@/lib/api/client";
 import { CommentSection } from "@/components/report/CommentSection";
 import type { DailyReport } from "@/types";
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+function mapReportResponse(r: any): DailyReport {
+  return {
+    id: r.id,
+    userId: r.user?.id,
+    reportDate: r.report_date,
+    status: r.status,
+    submittedAt: r.submitted_at,
+    problem: r.problem,
+    plan: r.plan,
+    user: r.user?.department
+      ? { ...r.user, departmentId: r.user.department.id, department: r.user.department }
+      : { ...r.user, departmentId: 0, department: { id: 0, name: "" } },
+    visitRecords: (r.visit_records ?? []).map((vr: any) => ({
+      id: vr.id,
+      reportId: r.id,
+      customerId: vr.customer?.id,
+      content: vr.content,
+      visitedAt: vr.visited_at,
+      customer: {
+        id: vr.customer?.id,
+        name: vr.customer?.name,
+        companyName: vr.customer?.company_name,
+        phone: null,
+        email: null,
+        address: null,
+      },
+    })),
+    comments: (r.comments ?? []).map((c: any) => ({
+      id: c.id,
+      reportId: r.id,
+      userId: c.user?.id,
+      targetType: c.target_type,
+      content: c.content,
+      createdAt: c.created_at,
+      user: {
+        ...c.user,
+        departmentId: 0,
+        department: { id: 0, name: "" },
+        role: "manager" as const,
+        email: "",
+      },
+    })),
+  };
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 export default function ReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [report, setReport] = useState<DailyReport | null>(null);
@@ -15,9 +62,9 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
   const [notFoundState, setNotFoundState] = useState(false);
 
   useEffect(() => {
-    apiFetch<DailyReport>(`/reports/${id}`).then((result) => {
+    apiFetch(`/reports/${id}`).then((result) => {
       if (result.ok) {
-        setReport(result.data);
+        setReport(mapReportResponse(result.data));
       } else {
         setNotFoundState(true);
       }
