@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { notFound } from "next/navigation";
 import { apiFetch } from "@/lib/api/client";
+import { mapReportResponse } from "@/lib/api/mappers";
 import { ReportForm } from "@/components/report/ReportForm";
 import type { DailyReport } from "@/types";
 
@@ -12,9 +13,9 @@ export default function EditReportPage({ params }: { params: Promise<{ id: strin
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiFetch<DailyReport>(`/reports/${id}`).then((result) => {
+    apiFetch(`/reports/${id}`).then((result) => {
       if (result.ok) {
-        setReport(result.data);
+        setReport(mapReportResponse(result.data));
       }
       setLoading(false);
     });
