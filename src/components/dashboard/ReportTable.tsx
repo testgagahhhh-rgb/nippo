@@ -1,18 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import type { DailyReport } from "@/types";
+
+export interface ReportListItem {
+  id: number;
+  reportDate: string;
+  status: string;
+  submittedAt: string | null;
+  user: { id: number; name: string };
+  hasUnreadComment: boolean;
+}
 
 interface ReportTableProps {
-  reports: DailyReport[];
+  reports: ReportListItem[];
   showAuthor: boolean;
 }
 
-function getCommentLabel(report: DailyReport): React.ReactNode {
+function getCommentLabel(report: ReportListItem): React.ReactNode {
   if (report.status === "draft") {
     return <span className="text-gray-400">—</span>;
   }
-  if (report.comments.length === 0) {
+  if (report.hasUnreadComment) {
     return (
       <span className="inline-flex items-center gap-1 text-orange-600">
         未コメント

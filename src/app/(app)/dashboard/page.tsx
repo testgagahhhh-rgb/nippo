@@ -4,15 +4,24 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getAuthUser } from "@/lib/auth";
 import { apiFetch } from "@/lib/api/client";
-import { ReportTable } from "@/components/dashboard/ReportTable";
+import { ReportTable, type ReportListItem } from "@/components/dashboard/ReportTable";
 import { ReportFilters } from "@/components/dashboard/ReportFilters";
-import type { DailyReport, User } from "@/types";
+import type { User } from "@/types";
+
+interface ReportListApiItem {
+  id: number;
+  report_date: string;
+  status: string;
+  submitted_at: string | null;
+  user: { id: number; name: string };
+  has_unread_comment: boolean;
+}
 
 export default function DashboardPage() {
   const authUser = getAuthUser();
   const isSales = authUser?.role === "sales";
 
-  const [reports, setReports] = useState<DailyReport[]>([]);
+  const [reports, setReports] = useState<ReportListItem[]>([]);
   const [salesUsers, setSalesUsers] = useState<User[]>([]);
   const [yearMonth, setYearMonth] = useState("");
   const [status, setStatus] = useState("");
@@ -26,9 +35,18 @@ export default function DashboardPage() {
     if (authorId) params.set("user_id", authorId);
     params.set("per_page", "100");
 
-    const result = await apiFetch<DailyReport[]>(`/reports?${params}`);
+    const result = await apiFetch<ReportListApiItem[]>(`/reports?${params}`);
     if (result.ok) {
-      setReports(result.data);
+      setReports(
+        result.data.map((r) => ({
+          id: r.id,
+          reportDate: r.report_date,
+          status: r.status,
+          submittedAt: r.submitted_at,
+          user: r.user,
+          hasUnreadComment: r.has_unread_comment,
+        })),
+      );
     }
     setLoading(false);
   }, [yearMonth, status, authorId]);
@@ -50,8 +68,8 @@ export default function DashboardPage() {
   const sortedReports = useMemo(() => {
     if (authUser?.role !== "manager") return reports;
     return [...reports].sort((a, b) => {
-      const aUncommented = a.status === "submitted" && a.comments.length === 0 ? 0 : 1;
-      const bUncommented = b.status === "submitted" && b.comments.length === 0 ? 0 : 1;
+      const aUncommented = a.status === "submitted" && a.hasUnreadComment ? 0 : 1;
+      const bUncommented = b.status === "submitted" && b.hasUnreadComment ? 0 : 1;
       return aUncommented - bUncommented;
     });
   }, [reports, authUser?.role]);
