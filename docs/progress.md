@@ -69,3 +69,27 @@
 | 2026-04-06 | feature/issue-19 → master | 成功（型チェック・テスト131件通過） |
 | 2026-04-06 | phase7-cicd → master | 成功（コンフリクトなし、テスト131件通過） |
 | 2026-04-06 | phase7-prod → master | 成功（コンフリクトなし、テスト131件通過） |
+
+## バグ修正履歴
+
+動作確認（ローカルDB + dev server）で発見・修正したバグ一覧。
+
+| # | 修正日 | 画面 | 症状 | 原因 | 対応 |
+|---|--------|------|------|------|------|
+| 1 | 2026-04-07 | ダッシュボード | `report.comments.length` で TypeError | 一覧API (`GET /reports`) は `comments` 配列を返さず `has_unread_comment` フラグを返す仕様だが、ReportTable が `comments.length` を参照していた | ReportTable を `hasUnreadComment` フラグベースに変更。DashboardPage でAPIレスポンス (snake_case) を camelCase にマッピング |
+| 2 | 2026-04-07 | 日報詳細 | `report.visitRecords.map` で TypeError | 詳細API (`GET /reports/:id`) のレスポンスが snake_case (`visit_records`, `report_date`, `target_type`) だが、フロントが camelCase (`visitRecords`, `reportDate`, `targetType`) でアクセスしていた | `mapReportResponse` 変換関数を作成し適用 |
+| 3 | 2026-04-07 | 日報編集 | `report.visitRecords.map` で TypeError（バグ#2と同根） | 編集ページでも同じ snake_case レスポンスを camelCase 型として扱っていた | `src/lib/api/mappers.ts` に共有マッパーを切り出し、詳細・編集の両ページで使用 |
+
+### 根本原因
+
+Phase 3 (API実装) と Phase 4 (画面実装) を並列で実装したため、APIレスポンスの命名規則 (snake_case) とフロント型定義 (camelCase) の不一致が Phase 5 (統合) で十分にカバーされていなかった。
+
+### 追加で実施したインフラ修正
+
+| # | 修正日 | 対象 | 内容 |
+|---|--------|------|------|
+| 4 | 2026-04-07 | Dockerfile | node:20→22、`npm ci --ignore-scripts && npm rebuild`、public/ COPY削除 |
+| 5 | 2026-04-07 | globals.css | Turbopack が `"style"` 条件付き export を解決できない問題を回避（CSSをローカルコピー） |
+| 6 | 2026-04-07 | src/lib/prisma.ts | Proxy で遅延初期化（ビルド時のDB接続エラー回避）、PrismaPg アダプター対応 |
+| 7 | 2026-04-07 | middleware.ts | `/api/health` を認証スキップ対象に追加 |
+| 8 | 2026-04-07 | prisma/seed.ts | ダミーハッシュ → bcrypt 実ハッシュ生成に変更、PrismaPg アダプター対応 |
